@@ -1,42 +1,53 @@
 import pyspark.sql.functions as F
+from pyspark.sql.session import SparkSession
 from pyspark.ml import Transformer
-from .aggregated_transformer import get_integer_columns, cast_df_col_to_int, save_aggregated_data
+import math
 import warnings
+import functools
+
+
 warnings.filterwarnings('ignore')
 
 
 class TrainTestTransformer(Transformer):
 
     def __init__(self):
-        self.aggregated_file_path = 'aggregated/mark_neg_zero.csv'
+        self.spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
+
+    def unionAll(self, dfs):
+        if len(dfs[0].columns) != 0:
+            return functools.reduce(lambda df1, df2: df1.union(df2.select(df1.columns)), dfs)
+        else:
+            return dfs[1]
 
     def _transform(self, df):
-        params = {
-            'train': 0.7,
-            'test': 0.3
-        }
-        if len(params) == 2:
-            df_cols = get_integer_columns(df)
+        data = [()]
+        final_train_df = self.spark.createDataFrame(data)
+        final_test_df = self.spark.createDataFrame(data)
 
-            # getting common columns
-            common_cols = list(set(df.columns) - set(df_cols))
-            split_cols = list(set(df_cols) - set(common_cols))
+        stores = df.select('store_id').distinct().orderBy('store_id').collect()
+        depts = df.select('dept_id').distinct().orderBy('dept_id').collect()
+        dataset_count = df.where((df.store_id == 'CA_1') & (df.dept_id == 'FOODS_1')).count()
+        train_ratio = math.floor(dataset_count * 0.7)
 
-            split_cols = df_cols[:len(df_cols)]
+        for store in stores:
+            for dept in depts:
+                dataset = df.where((df.store_id == store['store_id']) & (df.dept_id == dept['dept_id']))
 
-            train_ratio = int(len(split_cols) * params['train'])
-            test_ratio = len(split_cols) - train_ratio
+                # adding new column named index for split
+                dataset = dataset.withColumn("index", F.monotonically_increasing_id())
 
-            train_cols = common_cols.copy()
-            train_cols.extend(split_cols[:train_ratio + 1])
+                # computing train test ratio
 
-            test_cols = common_cols.copy()
-            test_cols.extend(split_cols[train_ratio + 1:])
+                # train test split
+                training_df = dataset.filter(dataset.index < train_ratio)
+                testing_df = dataset.filter(dataset.index >= train_ratio)
 
-            train_df = df.select(train_cols)
-            test_df = df.select(test_cols)
+                training_df = training_df.drop(F.col('index'))
+                testing_df = testing_df.drop(F.col('index'))
 
-            return train_df, test_df
-        else:
-            print("Please enter split ratios")
-            return None
+                final_train_df = self.unionAll([final_train_df, training_df])
+                final_test_df = self.unionAll([final_test_df, testing_df])
+
+        return final_train_df, final_test_df
+

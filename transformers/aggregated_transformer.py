@@ -3,21 +3,17 @@ from pyspark.ml import Transformer
 import warnings
 import os
 import traceback
+import re
 warnings.filterwarnings('ignore')
 
-
-def get_integer_columns(df):
-    integer_cols = [col for col, dtype in df.dtypes if dtype == 'int']
-    return integer_cols
-
-
-def cast_df_col_to_int(aggregated_df):
-    # change the datatype of column form long/double to int
-    aggregated_df = aggregated_df.select(
-        [F.col(column).cast('int') if dtype != 'string' else F.col(column).cast(dtype) for column, dtype in
-         aggregated_df.dtypes])
-    return aggregated_df
-
+def get_orignal_columns(lst=list()):
+    new_list = list()
+    for element in lst:
+        try:
+            new_list.append(re.sub(r'\W+', ' ', element).strip().split(' ')[1])
+        except:
+            new_list.append(element)
+    return new_list
 
 def save_aggregated_data(df, path):
     try:
@@ -32,6 +28,7 @@ def save_aggregated_data(df, path):
         return False
 
 
+
 class AggregatedTransformer(Transformer):
 
     def __init__(self):
@@ -40,17 +37,15 @@ class AggregatedTransformer(Transformer):
 
     def _transform(self, df):
         try:
-            aggregated_df = df.groupBy(["store_id", 'dept_id']).sum().orderBy(['store_id', 'dept_id'])
+            aggregated_df = df.groupBy(["store_id", 'dept_id', 'date']).avg().orderBy(['store_id', 'dept_id', 'date'])
 
             # renaming column name according to given data
-            new_cols = list()
-            new_cols.append(aggregated_df.columns[0])
-            new_cols.append(aggregated_df.columns[1])
-            new_cols.extend(get_integer_columns(df))
+            new_cols = get_orignal_columns(aggregated_df.columns)
 
             # change aggregated dataframe column name
             aggregated_df = aggregated_df.toDF(*new_cols)
-            aggregated_df = cast_df_col_to_int(aggregated_df)
+            aggregated_df = aggregated_df.withColumn('sales', (F.col('demand') * F.col('sell_price')))
+
             # save_aggregated_data(df=aggregated_df, path=self.aggregated_file_path)
             return aggregated_df
         except:

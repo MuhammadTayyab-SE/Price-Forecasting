@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.ml import Transformer
-from .aggregated_transformer import get_integer_columns, cast_df_col_to_int, save_aggregated_data
+import pyspark.sql.functions as F
+from .aggregated_transformer import  get_orignal_columns
 import warnings
 import traceback
 warnings.filterwarnings('ignore')
@@ -21,17 +22,8 @@ class MarkZeroNegTransformer(Transformer):
         :return df:
         """
         try:
-            agg_pd = df.toPandas()
-            temp_cols = get_integer_columns(df)
-            temp = agg_pd[temp_cols]
-            temp['flag'] = (temp == 0).sum(axis=1)
-            temp[temp.flag < 1] = 1
-            temp[temp.flag > 1] = 0
-            agg_pd['flag'] = temp.flag
-            agg_df = spark.createDataFrame(agg_pd)
-            agg_df = cast_df_col_to_int(agg_df)
-            # save_aggregated_data(agg_df, self.aggregated_file_path)
-            return agg_df
+            df = df.withColumn('flag', F.when(F.col('sales') <= 0.0, 1).otherwise(0))
+            return df
         except:
             traceback.print_exc()
             return False
