@@ -17,9 +17,15 @@ def get_orignal_columns(lst=list()):
 
 def getSchema(df):
     types = df.dtypes
-    lst = list()
+    lst = str()
+    count = 0
     for col, col_type in types:
-        lst.append(f"{col} {col_type}")
+        if count != len(types) - 1:
+            string = col + " "+col_type + ',' + ' '
+        else:
+            string = col + " "+col_type + ' '
+        lst += string
+        count += 1
     return lst
 
 def save_aggregated_data(df, path):
