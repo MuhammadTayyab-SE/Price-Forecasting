@@ -15,6 +15,13 @@ def get_orignal_columns(lst=list()):
             new_list.append(element)
     return new_list
 
+def getSchema(df):
+    types = df.dtypes
+    lst = list()
+    for col, col_type in types:
+        lst.append(f"{col} {col_type}")
+    return lst
+
 def save_aggregated_data(df, path):
     try:
         if os.path.isfile(path):
