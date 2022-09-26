@@ -31,13 +31,12 @@ zero_ng_df.show(1)
 train_test_transformer = TrainTestTransformer()
 train_set, test_set = train_test_transformer.transform(zero_ng_df)
 
-train_set.repartition(1).write.format('com.databricks.spark.csv').save('train.csv', header=True)
-test_set.repartition(1).write.format('com.databricks.spark.csv').save('test.csv', header=True)
-
-# mean_transformer = ImputeMeanTransformer()
-# mean_df = mean_transformer.transform(zero_ng_df)
-# mean_df.show(1)
 
 
+mean_transformer = ImputeMeanTransformer()
+train_set = mean_transformer.transform(train_set)
+test_set = mean_transformer.transform(test_set)
 
+train_set.repartition(1).write.format('com.databricks.spark.csv').save('train', header=True)
+test_set.repartition(1).write.format('com.databricks.spark.csv').save('test', header=True)
 

@@ -1,12 +1,11 @@
 import pyspark.sql.functions as F
 from pyspark.sql.session import SparkSession
-import pandas as pd
 from pyspark.ml import Transformer
+from .aggregated_transformer import getSchema
 import math
 import warnings
 import functools
-
-
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 
@@ -27,20 +26,7 @@ class TrainTestTransformer(Transformer):
 
     def __init__(self):
         self.spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
-        self.schema =  """
-            store_id string,
-            dept_id string,
-            date string,
-            demand double,
-            wm_yr_wk double,
-            wday double,
-            month double,
-            year double,
-            sell_price double,
-            sales double,
-            flag int,
-            split string
-        """
+        self.schema = str()
 
     def unionAll(self, dfs):
         if len(dfs[0].columns) != 0:
@@ -49,10 +35,14 @@ class TrainTestTransformer(Transformer):
             return dfs[1]
 
     def _transform(self, df):
+        self.schema = getSchema(df)
+        self.schema += ', split string'
+
         split_df = df.groupBy(['store_id', 'dept_id']).applyInPandas(g, schema=self.schema)
         cols = split_df.columns
         cols.remove('split')
         train = split_df.where(split_df.split == "train").select(cols)
         test = split_df.filter(split_df.split == "test").select(cols)
+
         return train, test
 

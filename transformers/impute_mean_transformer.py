@@ -1,22 +1,26 @@
 from pyspark.ml import Transformer
-from .aggregated_transformer import get_orignal_columns
+import pandas as pd
+from .aggregated_transformer import getSchema
 import traceback
 import warnings
 warnings.filterwarnings('ignore')
+def fill_na(df):
+    df['sales'].fillna(df['sales'].mean())
+    return df
 
 
 class ImputeMeanTransformer(Transformer):
 
     def __init__(self):
-        pass
+        self.schema = str()
 
     def _transform(self, df):
         try:
-            agg_store_df = df.groupby(['store_id', 'month']).avg().orderBy(['store_id', 'month'])
-            new_cols = get_orignal_columns(agg_store_df.columns)
-            print(new_cols)
-            aggregated_df = agg_store_df.toDF(*new_cols)
-            return aggregated_df
+            self.schema = getSchema(df)
+
+            # replace nan sales with mean of that group
+            agg_df = df.groupby(['store_id', 'dept_id']).applyInPandas(fill_na, schema=self.schema)
+            return agg_df
         except:
             traceback.print_exc()
             return None
