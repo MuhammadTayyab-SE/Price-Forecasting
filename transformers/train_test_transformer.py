@@ -17,7 +17,7 @@ def g(df):
 
     count = df['store_id'].count()
     train_ratio = math.floor(count * 0.7)
-    df.loc[df['index'] >= train_ratio, 'split'] = 'test'
+    df.loc[df['index'] > train_ratio, 'split'] = 'test'
     df.drop('index', axis=1, inplace=True)
     return df
 
