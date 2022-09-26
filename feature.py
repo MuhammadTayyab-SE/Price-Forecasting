@@ -7,7 +7,6 @@ from feature_transformers.lag_feature import LagTransformer
 spark = SparkSession.builder.master("local[5]").appName('Feature Engineering').getOrCreate()
 df = spark.read.csv("../Dataset/train.csv", header=True, inferSchema=True)
 df.repartition(5)
-partition = Window.partitionBy("sales").orderBy("date")
 
-temp = df.withColumn('Lag_feature', F.row_number().over(partition))
-temp.show()
+lag_transformer = LagTransformer(4)
+transformed_df = lag_transformer.transform(df)
