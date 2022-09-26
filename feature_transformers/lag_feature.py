@@ -1,35 +1,39 @@
-from pyspark.sql.window import Window
 from pyspark.sql.session import SparkSession
-from pyspark.sql import functions as F
 from pyspark.ml import Transformer
 import warnings
 import functools
 
 warnings.filterwarnings('ignore')
 
+
+def getSchema(df):
+    types = df.dtypes
+    lst = str()
+    count = 0
+    for col, col_type in types:
+        if count != len(types) - 1:
+            string = col + " "+col_type + ',' + ' '
+        else:
+            string = col + " "+col_type + ' '
+        lst += string
+        count += 1
+    return lst
+
+
 class LagTransformer(Transformer):
 
     def __init__(self, offset):
         self.offset = offset
-        self.spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
+        self.schema = str()
 
 
-    def unionAll(self, dfs):
-        if len(dfs[0].columns) != 0:
-            return functools.reduce(lambda df1, df2: df1.union(df2.select(df1.columns)), dfs)
-        else:
-            return dfs[1]
 
     def _transform(self, df):
+        def lag_feature(df):
+            df['sales'] = df['sales'].shift(self.offset)
+            return df
 
-        stores = df.select('store_id').distinct().orderBy('store_id').collect()
-        depts = df.select('dept_id').distinct().orderBy('dept_id').collect()
-        data = [()]
-        final_df = self.spark.createDataFrame(data)
+        self.schema = getSchema(df)
+        df = df.groupby('store_id', 'dept_id').applyInPandas(lag_feature, schema=self.schema)
+        return df
 
-        for store in stores:
-            for dept in depts:
-                grouped = df.where((df.store_id == store['store_id']) & (df['dept_id'] == dept['dept_id']))
-                windowSpec = Window.partitionBy(['store_id']).orderBy(['dept_id'])
-                final_df = self.unionAll([final_df, grouped.withColumn("lag_sales", F.lag("sales", self.offset).over(windowSpec))])
-        return final_df
