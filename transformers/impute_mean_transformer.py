@@ -5,7 +5,8 @@ import traceback
 import warnings
 warnings.filterwarnings('ignore')
 def fill_na(df):
-    df['sales'].fillna(df['sales'].mean())
+    df['sales'] = df['sales'].fillna(df['sales'].mean())
+    df = df.round(2)
     return df
 
 
