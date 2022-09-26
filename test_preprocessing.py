@@ -31,14 +31,16 @@ class MyTestCase(unittest.TestCase):
 
         transformer = MarkZeroNegTransformer()
         agg_df = transformer.transform(dfff)
+        cal_data = agg_df.select('flag').rdd.flatMap(lambda x: x).collect()
+        with self.subTest():
+            self.assertIn('flag', agg_df.columns)
+        with self.subTest():
+            self.assertIn(1, cal_data)
 
-        # assert 'flag' in agg_df.columns
-        self.assertIn('flag', agg_df.columns)
 
     def test_impute_mean_transformer(self):
-
         spark = SparkSession.builder.master("local[5]").appName('MLE Test Case').getOrCreate()
-        dataframe = spark.read.csv('testdata/testdata.csv', inferSchema=True, header=True)
+        dataframe = spark.read.csv('testdata/sales_data.csv', inferSchema=True, header=True)
         transformer = ImputeMeanTransformer()
         agg_df = transformer.transform(dataframe)
         with self.subTest():
