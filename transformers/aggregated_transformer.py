@@ -37,19 +37,6 @@ def getSchema(df):
     return lst
 
 
-# save dataframe into .csv file
-def save_aggregated_data(df, path):
-    try:
-        if os.path.isfile(path):
-            # if file exist remove that file
-            os.remove(path)
-        df = df.toPandas()
-        df.to_csv(path, index=False)
-        return True
-    except:
-        traceback.print_exc()
-        return False
-
 
 class AggregatedTransformer(Transformer):
     def __init__(self):
@@ -70,7 +57,6 @@ class AggregatedTransformer(Transformer):
             # add new column named sales that is the product of demand and sell_price
             aggregated_df = aggregated_df.withColumn('sales', (F.col('demand') * F.col('sell_price')))
 
-            # save_aggregated_data(df=aggregated_df, path=self.aggregated_file_path)
             return aggregated_df
         except:
             traceback.print_exc()
