@@ -9,26 +9,40 @@ import pyspark.sql.functions as F
 class MyTestCase(unittest.TestCase):
 
     def test_log_transformer(self):
+        # create custom dataframe for testing
         columns = ["sales"]
         data = [20000, 100000, 3000, 1]
         spark = SparkSession.builder.appName('Unit Test').getOrCreate()
         rdd = spark.sparkContext.parallelize(data)
         df = rdd.map(lambda x: (x,)).toDF(columns)
 
+        # applying log transformation using LogTransformer class on custom dataframe
         transformer = LogTransformer()
         df = transformer.transform(df)
+
+        # converting result transformed result into list
         cal_data = df.select('sales').rdd.flatMap(lambda x: x).collect()
+
+        # comparing the results
         self.assertEqual(cal_data, [math.log10(x) for x in data])
 
 
     def test_lag_trasformer(self):
+        # reading dataframe from csv file
         spark = SparkSession.builder.master("local[5]").appName('MLE Test Case').getOrCreate()
         df = spark.read.csv('test_dataset/sales_data.csv', inferSchema=True, header=True)
 
+        # applying lag transformation on dataset using custom transformer
         lag_transformer = LagTransformer(2)
         df = lag_transformer.transform(df)
+
+        # calculating nans in sales column
         trans = df.select(F.count(F.when(F.isnan('sales') | F.col('sales').isNull(), 'sales')).alias('sales'))
+
+        # converting sales column data into list
         count = trans.select('sales').rdd.flatMap(lambda x: x).collect()[0]
+
+        # if lag transformation works correctly there must be multiple nans in dataset
         self.assertGreater(count, 0)
 
 
