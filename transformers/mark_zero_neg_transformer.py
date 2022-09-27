@@ -1,7 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.ml import Transformer
 import pyspark.sql.functions as F
-from .aggregated_transformer import  get_orignal_columns
 import warnings
 import traceback
 warnings.filterwarnings('ignore')

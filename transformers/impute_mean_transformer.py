@@ -1,5 +1,4 @@
 from pyspark.ml import Transformer
-import pandas as pd
 from .aggregated_transformer import getSchema
 import traceback
 import warnings
