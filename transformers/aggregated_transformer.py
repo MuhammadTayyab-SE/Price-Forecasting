@@ -23,7 +23,9 @@ def get_orignal_columns(lst=list()):
     return new_list
 
 # return schema of that dataframe in string format
-def getSchema(df):
+
+
+def get_schema(df):
     types = df.dtypes
     lst = str()
     count = 0
@@ -37,11 +39,9 @@ def getSchema(df):
     return lst
 
 
-
 class AggregatedTransformer(Transformer):
     def __init__(self):
         self.aggregated_file_path = 'aggregated/aggregated_data.csv'
-
 
     def _transform(self, df):
         try:

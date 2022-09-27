@@ -1,6 +1,6 @@
 from pyspark.sql.session import SparkSession
 from pyspark.ml import Transformer
-from .aggregated_transformer import getSchema
+from .aggregated_transformer import get_schema
 import math
 import warnings
 
@@ -8,7 +8,7 @@ warnings.filterwarnings('ignore')
 
 
 # UDF function for splitting data into train and test
-def g(df):
+def seprate_train_test(df):
     """
         New column will be added named split that contain value of train or test
     :param df:
@@ -31,16 +31,18 @@ class TrainTestTransformer(Transformer):
         self.spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
         self.schema = str()
 
-
     def _transform(self, df):
 
         # get schema of the returned table form UDF
-        self.schema = getSchema(df)
+        self.schema = get_schema(df)
         self.schema += ', split string'
 
-        split_df = df.groupBy(['store_id', 'dept_id']).applyInPandas(g, schema=self.schema)
+        # group data of store, dept and apply UDF
+        split_df = df.groupBy(['store_id', 'dept_id']).applyInPandas(seprate_train_test, schema=self.schema)
         cols = split_df.columns
         cols.remove('split')
+
+        # separate train test rows
         train = split_df.where(split_df.split == "train").select(cols)
         test = split_df.filter(split_df.split == "test").select(cols)
 

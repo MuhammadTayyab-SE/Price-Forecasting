@@ -1,5 +1,5 @@
 from pyspark.ml import Transformer
-from .aggregated_transformer import getSchema
+from .aggregated_transformer import get_schema
 import traceback
 import warnings
 warnings.filterwarnings('ignore')
