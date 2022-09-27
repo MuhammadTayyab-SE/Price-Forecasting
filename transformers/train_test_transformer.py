@@ -10,7 +10,13 @@ import pandas as pd
 warnings.filterwarnings('ignore')
 
 
+# UDF function for splitting data into train and test
 def g(df):
+    """
+        New column will be added named split that contain value of train or test
+    :param df:
+    :return df:
+    """
     count = df['store_id'].count()
     df['split'] = 'train'
     df['index'] = range(0, count)
@@ -28,13 +34,10 @@ class TrainTestTransformer(Transformer):
         self.spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
         self.schema = str()
 
-    def unionAll(self, dfs):
-        if len(dfs[0].columns) != 0:
-            return functools.reduce(lambda df1, df2: df1.union(df2.select(df1.columns)), dfs)
-        else:
-            return dfs[1]
 
     def _transform(self, df):
+
+        # get schema of the returned table form UDF
         self.schema = getSchema(df)
         self.schema += ', split string'
 

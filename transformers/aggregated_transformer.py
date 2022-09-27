@@ -6,7 +6,14 @@ import traceback
 import re
 warnings.filterwarnings('ignore')
 
+# remove unnecessary or special chars from the string
 def get_orignal_columns(lst=list()):
+    """
+    remove special charaters form the string
+    for example we have some string like [avg(count), avg(product)] this function will return [count, product]
+    :param list:
+    :return list:
+    """
     new_list = list()
     for element in lst:
         try:
@@ -15,6 +22,7 @@ def get_orignal_columns(lst=list()):
             new_list.append(element)
     return new_list
 
+# return schema of that dataframe in string format
 def getSchema(df):
     types = df.dtypes
     lst = str()
@@ -28,6 +36,8 @@ def getSchema(df):
         count += 1
     return lst
 
+
+# save dataframe into .csv file
 def save_aggregated_data(df, path):
     try:
         if os.path.isfile(path):
@@ -41,15 +51,14 @@ def save_aggregated_data(df, path):
         return False
 
 
-
 class AggregatedTransformer(Transformer):
-
     def __init__(self):
         self.aggregated_file_path = 'aggregated/aggregated_data.csv'
 
 
     def _transform(self, df):
         try:
+            # grouped data on store-dept level
             aggregated_df = df.groupBy(["store_id", 'dept_id', 'date']).avg().orderBy(['store_id', 'dept_id', 'date'])
 
             # renaming column name according to given data
@@ -57,6 +66,8 @@ class AggregatedTransformer(Transformer):
 
             # change aggregated dataframe column name
             aggregated_df = aggregated_df.toDF(*new_cols)
+
+            # add new column named sales that is the product of demand and sell_price
             aggregated_df = aggregated_df.withColumn('sales', (F.col('demand') * F.col('sell_price')))
 
             # save_aggregated_data(df=aggregated_df, path=self.aggregated_file_path)
