@@ -37,4 +37,3 @@ test_set = mean_transformer.transform(test_set)
 # saving train test data in csv file
 train_set.repartition(1).write.format('com.databricks.spark.csv').save('train', header=True)
 test_set.repartition(1).write.format('com.databricks.spark.csv').save('test', header=True)
-

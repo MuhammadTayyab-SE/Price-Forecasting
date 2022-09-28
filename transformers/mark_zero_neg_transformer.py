@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.ml import Transformer
-import pyspark.sql.functions as F
+import pyspark.sql.functions as f
 import warnings
 import traceback
 warnings.filterwarnings('ignore')
@@ -10,6 +10,7 @@ spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrC
 class MarkZeroNegTransformer(Transformer):
 
     def __init__(self):
+        super().__init__()
         self.aggregated_file_path = 'aggregated/mark_neg_zero.csv'
         pass
 
@@ -21,9 +22,11 @@ class MarkZeroNegTransformer(Transformer):
         :return df:
         """
         try:
-            df = df.withColumn('flag', F.when(F.col('sales') <= 0.0, 1).otherwise(0))
+            df = df.withColumn('flag', f.when(f.col('sales') <= 0.0, 1).otherwise(0))
+
+            # ignore this line
+            self.aggregated_file_path = ""
             return df
-        except:
+        except (Exception,):
             traceback.print_exc()
             return False
-

@@ -1,7 +1,6 @@
 import unittest
 from pyspark.sql.session import SparkSession
-import pyspark.sql.functions as F
-from pyspark.sql import Row
+import pyspark.sql.functions as f
 import math
 from transformers.aggregated_transformer import AggregatedTransformer
 from transformers.impute_mean_transformer import ImputeMeanTransformer
@@ -11,8 +10,10 @@ from transformers.mark_zero_neg_transformer import MarkZeroNegTransformer
 
 class MyTestCase(unittest.TestCase):
     agg_df = None
+
     def test_aggregation_transformer(self):
         spark = SparkSession.builder.master("local[5]").appName('MLE Test Case').getOrCreate()
+
         # reading the custom dataframe
         dataframe = spark.read.csv('test_dataset/testdata.csv', inferSchema=True, header=True)
         transformer = AggregatedTransformer()
@@ -49,6 +50,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_impute_mean_transformer(self):
         spark = SparkSession.builder.master("local[5]").appName('MLE Test Case').getOrCreate()
+
         # read custom dataset
         dataframe = spark.read.csv('test_dataset/sales_data.csv', inferSchema=True, header=True)
 
@@ -57,13 +59,13 @@ class MyTestCase(unittest.TestCase):
         agg_df = transformer.transform(dataframe)
 
         # counting the nulls in the returned dataset, there should be no null
-        trans = agg_df.select(F.count(F.when(F.isnan('sales') | F.col('sales').isNull(), 'sales')).alias('sales'))
+        trans = agg_df.select(f.count(f.when(f.isnan('sales') | f.col('sales').isNull(), 'sales')).alias('sales'))
         count = trans.select('sales').rdd.flatMap(lambda x: x).collect()[0]
         self.assertEqual(count, 0)
 
-
     def test_train_test_transformer(self):
         spark = SparkSession.builder.master("local[5]").appName('MLE Test Case').getOrCreate()
+
         # reading the dataframe
         dataframe = spark.read.csv('test_dataset/sales_data.csv', inferSchema=True, header=True)
 
