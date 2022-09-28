@@ -1,6 +1,4 @@
-from pyspark.sql.session import SparkSession
-import pyspark.sql.functions as F
-import numpy as np
+import pyspark.sql.functions as f
 from pyspark.ml import Transformer
 import warnings
 warnings.filterwarnings('ignore')
@@ -8,8 +6,12 @@ warnings.filterwarnings('ignore')
 
 class LogTransformer(Transformer):
     def __init__(self):
+        super().__init__()
         pass
 
     def _transform(self, df):
-        df = df.withColumn('sales', F.log10(F.col('sales')))
+        # Ignore this line
+        self.none = None
+
+        df = df.withColumn('sales', f.log10(f.col('sales')))
         return df

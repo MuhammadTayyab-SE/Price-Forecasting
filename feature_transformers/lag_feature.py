@@ -4,7 +4,11 @@ warnings.filterwarnings('ignore')
 
 
 # return schema of the dataframe in string format
-def getSchema(df):
+def get_schema(df):
+    """ This function takes dataframe as argument and return dataframe's schema as string
+    :param df: dataframe
+    :return: df
+    """
     types = df.dtypes
     lst = str()
     count = 0
@@ -21,20 +25,22 @@ def getSchema(df):
 class LagTransformer(Transformer):
 
     def __init__(self, offset):
+        super().__init__()
         self.offset = offset
         self.schema = str()
-
-
 
     def _transform(self, df):
 
         # UDF for lag transformation
-        def lag_feature(df):
-            df['sales'] = df['sales'].shift(self.offset)
-            return df
+        def lag_feature(dff):
+            """ This function apply lag transformation on each of the grouped data
+            :param dff: dataframe
+            :return: dataframe
+            """
+            dff['sales'] = dff['sales'].shift(self.offset)
+            return dff
 
-        self.schema = getSchema(df)
+        self.schema = get_schema(df)
         # applying lag transformation on the bases of store and department
         df = df.groupby('store_id', 'dept_id').applyInPandas(lag_feature, schema=self.schema)
         return df
-
