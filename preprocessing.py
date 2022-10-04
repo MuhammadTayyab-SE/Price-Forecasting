@@ -9,7 +9,7 @@ spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrC
 
 
 # Loading Dataset
-df = spark.read.parquet("../df.parquet.gzip")
+df = spark.read.parquet("../df_final.parquet.gzip")
 df.repartition(5)
 
 # drop unnecessary columns
