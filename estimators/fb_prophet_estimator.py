@@ -1,16 +1,28 @@
 from prophet import Prophet
 from pyspark.ml import Estimator
-from pyspark.sql.types import StructType, StructField, StringType, DateType, DoubleType
-import plotly.express as px
 import pandas as pd
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error
+import numpy as np
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import warnings
+from hyperopt import hp
+from estimators.tune_fb_prophet import Tune
+
 warnings.filterwarnings('ignore')
+
 
 def change_col_names(dataset, target_col):
     dataset = dataset.withColumnRenamed('date', 'ds')
     dataset = dataset.withColumnRenamed(target_col, 'y')
     return dataset
+
+
+def mean_absolute_percentage_error(y_true, y_predict):
+    y_temp = y_true.copy()
+    y_temp[y_temp == 0] = 1
+    y_true.reset_index(inplace=True, drop=True)
+    y_predict.reset_index(inplace=True, drop=True)
+    y_temp.reset_index(inplace=True, drop=True)
+    return np.mean(np.abs((y_true - y_predict) / y_temp)) * 100
 
 
 class ProphetEstimator(Estimator):
@@ -21,28 +33,37 @@ class ProphetEstimator(Estimator):
     def __init__(self):
         super().__init__()
         self.target_col = 'demand'
-        self.schema  = """ds date, store_id string, dept_id string, y double, yhat double"""
+        self.schema = """ds date, store_id string, dept_id string, y double, yhat double"""
+        # self.schema = """ds date,y double"""
 
     def _fit(self, dataset):
         dataset = change_col_names(dataset, self.target_col)
-
         df_train = dataset.filter(dataset.split == "train")
         df_test = dataset.filter(dataset.split == 'test').toPandas()
 
-        # @pandas_udf(returnType=DataFrame)
         def forecast_store_item(df):
             test = df_test[df_test.store_id == df.store_id.unique()[0]]
             test = test[df_test.dept_id == df.dept_id.unique()[0]]
             test = test.iloc[:365, :]
             df = df[['ds', 'y']]
 
-            #     instantiate the model, configure the parameters
-            model = Prophet(
-                interval_width=0.95,
-                changepoint_prior_scale=0.1,
-                changepoint_range=0.5,
-                seasonality_mode='additive'
-            )
+            temp_df = df.copy()
+            temp_test = test.copy()
+
+            space = {
+                'seasonality_mode': hp.choice('seasonality_mode', ['multiplicative', 'additive']),
+                'changepoint_prior_scale': hp.choice('changepoint_prior_scale', np.arange(.1, 0.9, .1)),
+                'changepoint_range': hp.choice('changepoint_range', np.arange(.1, 0.8, .1)),
+                'daily_seasonality': hp.choice('daily_seasonality', [True]),
+                'yearly_seasonality': hp.choice('yearly_seasonality', [True]),
+                'weekly_seasonality': hp.choice('weekly_seasonality', [True]),
+                'seasonality_prior_scale': hp.choice('seasonality_prior_scale', np.arange(1, 10, 1)),
+            }
+
+            tune = Tune(temp_df, temp_test, space)
+            params = tune.tune_hyper_parameters()
+
+            model = Prophet(**params)
             model.fit(df)
 
             daily_model_forecast_future_data = model.make_future_dataframe(periods=365, freq='D', include_history=False)
@@ -52,21 +73,14 @@ class ProphetEstimator(Estimator):
             print(f"Mean Squared Error: {mean_squared_error(test.y, daily_model_forecast.yhat)}")
             print(f"R2 Score: {r2_score(test.y, daily_model_forecast.yhat)}")
             print(f"Mean Absolute Error: {mean_absolute_error(test.y, daily_model_forecast.yhat)}")
-            print(f"Mean Absolute Percentage Error: {mean_absolute_percentage_error(test.y, daily_model_forecast.yhat)} \n")
-
-            test_parms = test[['ds', 'store_id', 'dept_id', 'y']]
-            test_parms.reset_index(inplace=True)
+            print(f"""Mean Absolute Percentage Error: 
+                    {mean_absolute_percentage_error(test.y, daily_model_forecast.yhat)} \n""")
+            test_params = test[['ds', 'store_id', 'dept_id', 'y']]
+            test_params.reset_index(inplace=True)
             daily_model_forecast.reset_index(inplace=True)
-            test_parms['yhat'] = pd.Series(daily_model_forecast['yhat'].to_list())
+            test_params['yhat'] = pd.Series(daily_model_forecast['yhat'].to_list())
 
-            # fig = px.line(test_parms, x="ds", y=['y', 'yhat'],
-            #               title=f"Daily Model Store: {test_parms.store_id.unique()[0]}, Dept:{test_parms.dept_id.unique()[0]} ")
-            # fig.show()
+            return test_params[['ds', 'store_id', 'dept_id', 'y', 'yhat']]
 
-            return test_parms[['ds', 'store_id', 'dept_id', 'y', 'yhat']]
-
-        results = df_train.groupby('store_id', 'dept_id').applyInPandas(forecast_store_item, schema=self.schema)
+        results = df_train.groupby(['store_id', 'dept_id']).applyInPandas(forecast_store_item, schema=self.schema)
         return results
-
-    def get_param(self):
-        return self.prophet.params
