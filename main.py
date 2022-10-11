@@ -39,7 +39,7 @@ test_set = mean_transformer.transform(test_set)
 
 # log transformation on train dataset
 
-log_transformer = LogTransformer()
+log_transformer = LogTransformer(column=['sales'])
 log_df_train = log_transformer.transform(train_set)
 log_df_train.show()
 
@@ -51,7 +51,7 @@ transformed_df_train.show()
 
 # log transformation to test dataset
 
-log_transformer = LogTransformer()
+log_transformer = LogTransformer(column=['sales'])
 log_df_test = log_transformer.transform(test_set)
 log_df_test.show()
 
