@@ -1,0 +1,43 @@
+store_id	dept_id	seasonality_mode	changepoint_prior_scale	changepoint_range	seasonality_prior_scale	
+CA_1	FOODS_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_1	FOODS_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+CA_1	FOODS_3	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_1	HOBBIES_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_1	HOBBIES_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+CA_1	HOUSEHOLD_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_1	HOUSEHOLD_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_2	FOODS_1					
+CA_2	FOODS_2					
+CA_2	FOODS_3					
+CA_2	HOBBIES_1					
+CA_2	HOBBIES_2					
+CA_2	HOUSEHOLD_1					
+CA_2	HOUSEHOLD_2					
+CA_3	FOODS_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_3	FOODS_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_3	FOODS_3	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_3	HOBBIES_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_3	HOBBIES_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+CA_3	HOUSEHOLD_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_3	HOUSEHOLD_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+CA_4	FOODS_1	multiplicative additive	0.1 0.9	0.3 1.0	1 10	
+CA_4	FOODS_2	multiplicative additive	0.1 0.9	0.3 1.0	1 10	checked
+CA_4	FOODS_3	multiplicative additive	0.1 0.9	0.3 1.0	1 10	checked
+CA_4	HOBBIES_1	multiplicative additive	0.1 0.9	0.3 1.0	1 10	checked
+CA_4	HOBBIES_2	multiplicative additive	0.1 0.9	0.3 1.0	1 10	
+CA_4	HOUSEHOLD_1	multiplicative additive	0.1 0.9	0.3 1.0	1 10	
+CA_4	HOUSEHOLD_2	multiplicative additive	0.1 0.9	0.3 1.0	1 10	checked
+WI_1	FOODS_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+WI_1	FOODS_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+WI_1	FOODS_3	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+WI_1	HOBBIES_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+WI_1	HOBBIES_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+WI_1	HOUSEHOLD_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	
+WI_1	HOUSEHOLD_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+WI_2	FOODS_1					
+WI_2	FOODS_2					
+WI_2	FOODS_3					
+WI_2	HOBBIES_1	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
+WI_2	HOBBIES_2					
+WI_2	HOUSEHOLD_1					
+WI_2	HOUSEHOLD_2	multiplicative additive	0.1 0.9	0.1 0.8	1 10	checked
