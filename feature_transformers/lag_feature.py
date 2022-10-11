@@ -37,10 +37,24 @@ class LagTransformer(Transformer):
             :param dff: dataframe
             :return: dataframe
             """
-            dff['sales'] = dff['sales'].shift(self.offset)
+            for itr in range(0, self.offset):
+                col_name = f"sales_lag_{itr + 1}"
+                dff[col_name] = dff['sales'].shift(itr+1)
+
             return dff
 
         self.schema = get_schema(df)
+
+        # appending schema for lag transformed columns
+        self.schema += ', '
+        string = ""
+        for i in range(0, self.offset):
+            if i == self.offset - 1:
+                string += f"sales_lag_{i + 1} double"
+            else:
+                string += f"sales_lag_{i+1} double, "
+        self.schema += string
+
         # applying lag transformation on the bases of store and department
         df = df.groupby('store_id', 'dept_id').applyInPandas(lag_feature, schema=self.schema)
         return df
