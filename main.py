@@ -3,6 +3,7 @@ from transformers.aggregated_transformer import AggregatedTransformer
 from transformers.impute_mean_transformer import ImputeMeanTransformer
 from transformers.train_test_transformer import TrainTestTransformer
 from transformers.mark_zero_neg_transformer import MarkZeroNegTransformer
+from transformers.string_indexer_transformer import StringIndexerTransformer
 from feature_transformers.log_transformer import LogTransformer
 from feature_transformers.lag_feature import LagTransformer
 
@@ -15,6 +16,10 @@ df.repartition(5)
 
 # drop unnecessary columns
 df = df.drop(*['snap_CA', 'snap_TX', 'snap_WI'])
+
+stringIndexer = StringIndexerTransformer(input_cols=['event_name_1', 'event_type_1', 'event_name_2', 'event_type_2'],
+                                         output_cols=['event_name_1', 'event_type_1', 'event_name_2', 'event_type_2'])
+df = stringIndexer.transform(df)
 
 # aggregate data on store department level
 aggregated_transformer = AggregatedTransformer()
