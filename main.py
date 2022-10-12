@@ -6,7 +6,6 @@ from transformers.mark_zero_neg_transformer import MarkZeroNegTransformer
 from feature_transformers.log_transformer import LogTransformer
 from feature_transformers.lag_feature import LagTransformer
 
-
 spark = SparkSession.builder.master("local[5]").appName('MLE Assignment').getOrCreate()
 
 
@@ -20,12 +19,10 @@ df = df.drop(*['snap_CA', 'snap_TX', 'snap_WI'])
 # aggregate data on store department level
 aggregated_transformer = AggregatedTransformer()
 aggregated_df = aggregated_transformer.transform(df)
-aggregated_df.show(3)
 
 # mark rows with zero sales
 zero_ng_transformer = MarkZeroNegTransformer()
 zero_ng_df = zero_ng_transformer.transform(aggregated_df)
-zero_ng_df.show(1)
 
 # split data into train and test
 train_test_transformer = TrainTestTransformer()
@@ -60,3 +57,6 @@ log_df_test.show()
 lag_transformer = LagTransformer(offset=2)
 transformed_df_test = lag_transformer.transform(log_df_test)
 transformed_df_test.show()
+
+transformed_df_train.repartition(1).write.format('com.databricks.spark.csv').save("train", header='true')
+transformed_df_test.repartition(1).write.format('com.databricks.spark.csv').save("test", header='true')

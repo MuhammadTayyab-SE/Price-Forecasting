@@ -7,7 +7,11 @@ from hyperopt import fmin, tpe, hp, Trials
 from pyspark.ml.classification import RandomForestClassifier
 warnings.filterwarnings('ignore')
 
+
 class RandomForestEstimator(Estimator, HasInputCol, HasOutputCols):
     def __int__(self):
         super(RandomForestEstimator, self).__int__()
         self.model = RandomForestClassifier(labelCol='sales', featuresCol='features')
+
+    def _fit(self, dataset):
+        pass
