@@ -16,10 +16,11 @@ class StringIndexerTransformer(Transformer, HasInputCols, HasOutputCols):
     """
     This class is used to convert the
     """
-    def __init__(self, input_cols=list, output_cols=list):
+    def __init__(self, input_cols=list, output_cols=list, original='keeps'):
         super().__init__()
         self.inputCols = input_cols
         self.outputCols = output_cols
+        self.original = original
 
     def _transform(self, df):
 
@@ -27,10 +28,13 @@ class StringIndexerTransformer(Transformer, HasInputCols, HasOutputCols):
         converter = string_indexer.fit(df)
         results = converter.transform(df)
 
-        results = results.drop(*self.outputCols)
-
-        for i in range(len(self.outputCols)):
-            results = results.withColumnRenamed(f"{i+1}", self.outputCols[i])
+        if self.original == 'keeps':
+            results = results.drop(*self.outputCols)
+            for i in range(len(self.inputCols)):
+                results = results.withColumnRenamed(f"{i+1}", self.inputCols[i])
+        else:
+            for i in range(len(self.inputCols)):
+                results = results.withColumnRenamed(f"{i+1}", self.outputCols[i])
 
         return results
 
