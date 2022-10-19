@@ -11,20 +11,22 @@ class MyTestCase(unittest.TestCase):
     def test_log_transformer(self):
         # create custom dataframe for testing
         columns = ["sales"]
-        data = [20000, 100000, 3000, 1]
+        data = [20000, 100000, 3000, 0]
         spark = SparkSession.builder.appName('Unit Test').getOrCreate()
         rdd = spark.sparkContext.parallelize(data)
         df = rdd.map(lambda x: (x,)).toDF(columns)
 
         # applying log transformation using LogTransformer class on custom dataframe
-        transformer = LogTransformer(column=['sales'])
-        df = transformer.transform(df)
+        df = LogTransformer(column=['sales']).transform(df)
 
-        # converting result transformed result into list
-        cal_data = df.select('sales').rdd.flatMap(lambda x: x).collect()
+        # collecting nans from the dataframe
+        trans = df.select(f.count(f.when(f.isnan('sales') | f.col('sales').isNull(), 'sales')).alias('sales'))
 
-        # comparing the results
-        self.assertEqual(cal_data, [math.log10(x) for x in data])
+        # converting sales column data into list
+        count = trans.select('sales').rdd.flatMap(lambda x: x).collect()[0]
+
+        # assert either dataframe df contain any null or not
+        self.assertEqual(count, 0)
 
     def test_lag_transformer(self):
         # reading dataframe from csv file

@@ -20,6 +20,7 @@ class LogTransformer(Transformer, HasInputCols, HasOutputCols):
 
         for column in self.columns:
             if column in column_list:
+                df = df.withColumn(column, f.when(df[column] == 0, f.lit(1)).otherwise(df[column]))
                 df = df.withColumn(column, f.log10(f.col(column)))
             else:
                 print(f"{column} not in the list of columns {column_list}")
