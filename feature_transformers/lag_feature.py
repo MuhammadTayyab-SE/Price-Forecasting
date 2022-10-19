@@ -24,10 +24,11 @@ def get_schema(df):
 
 class LagTransformer(Transformer):
 
-    def __init__(self, offset):
+    def __init__(self, offset=int(), lagged_column='sales'):
         super().__init__()
         self.offset = offset
         self.schema = str()
+        self.lagged_column = lagged_column
 
     def _transform(self, df):
 
@@ -39,7 +40,7 @@ class LagTransformer(Transformer):
             """
             for itr in range(0, self.offset):
                 col_name = f"sales_lag_{itr + 1}"
-                dff[col_name] = dff['sales'].shift(itr+1)
+                dff[col_name] = dff[self.lagged_column].copy().shift(itr+1)
 
             return dff
 
@@ -50,9 +51,9 @@ class LagTransformer(Transformer):
         string = ""
         for i in range(0, self.offset):
             if i == self.offset - 1:
-                string += f"sales_lag_{i + 1} double"
+                string += f"{self.lagged_column}_lag_{i + 1} double"
             else:
-                string += f"sales_lag_{i+1} double, "
+                string += f"{self.lagged_column}_lag_{i+1} double, "
         self.schema += string
 
         # applying lag transformation on the bases of store and department
