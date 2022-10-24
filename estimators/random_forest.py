@@ -10,6 +10,7 @@ from estimators.tune_random_forest import Tune
 from sklearn.ensemble import RandomForestRegressor
 from pyspark.ml.feature import VectorAssembler
 from transformers.string_indexer_transformer import StringIndexerTransformer
+import numpy as np
 
 warnings.filterwarnings('ignore')
 
@@ -80,6 +81,9 @@ class RandomForestEstimator(Estimator, HasInputCol, HasOutputCols):
             rfr.fit(train, df['sales'])
             predict = rfr.predict(test)
             prediction_df['prediction'] = pd.Series(predict)
+
+            prediction_df['sales'] = np.exp(prediction_df['sales'])
+            prediction_df['prediction'] = np.exp(prediction_df['prediction'])
 
             save_df['daily'] = mean_absolute_percentage_error(prediction_df['sales'], prediction_df['prediction'])
 

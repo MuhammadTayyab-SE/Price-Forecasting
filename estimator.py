@@ -1,12 +1,13 @@
 from estimators.fb_prophet_estimator import ProphetEstimator
 from estimators.random_forest import RandomForestEstimator
+from estimators.sarima_estimator import SarimaEstimator
 from pyspark.sql.session import SparkSession
 import pyspark.sql.functions as f
 
 import warnings
 warnings.filterwarnings('ignore')
 
-spark = SparkSession.builder.appName('Estimator').getOrCreate()
+spark = SparkSession.builder.master("local[2]").appName('Estimator').getOrCreate()
 df_train = spark.read.csv('../Dataset/train.csv', inferSchema=True, header=True)
 df_train = df_train.withColumn('date', f.to_date(df_train.date))
 df_train = df_train.withColumn('split', f.lit('train'))
@@ -22,6 +23,10 @@ df_cont = df_cont.orderBy(['store_id', 'dept_id', 'date'])
 # predicted_data = prophet_model.fit(df_cont)
 # predicted_data.repartition(1).write.format('com.databricks.spark.csv').save('predicted', header=True)
 
-tree_estimator = RandomForestEstimator()
-prediction = tree_estimator.fit(df_cont)
-prediction.count()
+# tree_estimator = RandomForestEstimator()
+# prediction = tree_estimator.fit(df_cont)
+# prediction.count()
+
+sarima_model = SarimaEstimator()
+predicted_data = sarima_model.fit(df_cont)
+predicted_data.repartition(1).write.format('com.databricks.spark.csv').save('predicted', header=True)

@@ -33,6 +33,10 @@ class Tune:
 
             y_true = test_df['y']
             y_predict = forecast_df['yhat']
+
+            y_true = np.exp(y_true)
+            y_predict = np.exp(y_predict)
+
             y_temp = y_true.copy()
             y_temp[y_temp == 0] = 1
 
@@ -47,7 +51,7 @@ class Tune:
         print(f"""Choosing best parameters for Store: 
             {self.test.store_id.unique()[0]} & Dept: {self.test.dept_id.unique()[0]}""")
 
-        best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=40, trials=trials)
+        best = fmin(fn=objective, space=space, algo=tpe.suggest, max_evals=10, trials=trials)
         params = hyperopt.space_eval(space, best)
         print(f"""Best parameters for Store: {self.test.store_id.unique()[0]}
               & Dept: {self.test.dept_id.unique()[0]} are:\n {params}""")
