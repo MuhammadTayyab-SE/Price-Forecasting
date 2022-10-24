@@ -18,8 +18,6 @@ def mean_absolute_percentage_error(y_true, y_predict):
     :param y_predict: predicted values in pandas series format
     :return float: return calculated MAPE value
     """
-    print(y_true)
-    print(y_predict)
     y_true.reset_index(inplace=True, drop=True)
     y_predict.reset_index(inplace=True, drop=True)
     y_temp = y_true.copy()
