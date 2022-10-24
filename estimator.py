@@ -7,7 +7,7 @@ import pyspark.sql.functions as f
 import warnings
 warnings.filterwarnings('ignore')
 
-spark = SparkSession.builder.appName('Estimator').getOrCreate()
+spark = SparkSession.builder.master("local[2]").appName('Estimator').getOrCreate()
 df_train = spark.read.csv('../Dataset/train.csv', inferSchema=True, header=True)
 df_train = df_train.withColumn('date', f.to_date(df_train.date))
 df_train = df_train.withColumn('split', f.lit('train'))

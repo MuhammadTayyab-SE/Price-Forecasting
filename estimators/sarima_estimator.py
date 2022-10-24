@@ -6,7 +6,9 @@ import pmdarima as pm
 import numpy as np
 import pandas as pd
 import os
-import joblib
+import pickle
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def mean_absolute_percentage_error(y_true, y_predict):
@@ -33,6 +35,16 @@ def get_number_of_lags(array):
         if value < 0.05:
             return i
         i += 1
+
+
+def is_already_trained(store_id, dept_id):
+    df = pd.read_csv("../models/sarima/MAPE.csv")
+    if store_id in df['store_id'].unique().tolist():
+        df = df[df.store_id == store_id]
+        if dept_id in df['dept_id'].unique().tolist():
+            print(store_id, dept_id)
+            return True
+    return False
 
 
 def is_time_series_stationary(df, col_name):
@@ -67,6 +79,13 @@ def find_d(df, col_name):
         difference += 1
 
 
+def create_dummy_data(df):
+    df_ = df.copy()
+    df_ = df[['date', 'store_id', 'dept_id', 'sales']]
+    df_['prediction'] = None
+    return df_
+
+
 class SarimaEstimator(Estimator, HasInputCol, HasOutputCols):
 
     def __init__(self):
@@ -84,91 +103,101 @@ class SarimaEstimator(Estimator, HasInputCol, HasOutputCols):
             :param df: pyspark dataframe that have data chunks according to group by
             :return df: desired dataframe
             """
-            # prepare test dataset according to the training dataset
+
             df_test = test_pd[test_pd.store_id == df.store_id.unique()[0]]
             df_test = df_test[df_test.dept_id == df.dept_id.unique()[0]]
 
-            # save_df dataframe will be used to store score in csv file
-            save_df = df_test.head(1)[['store_id', 'dept_id']]
-            save_df.reset_index(inplace=True, drop=True)
+            if not is_already_trained(df.store_id.unique().tolist()[0],
+                                      df.dept_id.unique().tolist()[0]):
 
-            # prediction df returned by forecast_sales function
-            predictions_df = df_test[['date', 'store_id', 'dept_id', 'sales']].copy()
-            predictions_df.reset_index(inplace=True, drop=True)
-            predictions_df = predictions_df.loc[:364, :]
+                # prepare test dataset according to the training dataset
 
-            # check either time series is stationary or not
-            condition, p_value = is_time_series_stationary(df, 'sales')
+                # save_df dataframe will be used to store score in csv file
+                save_df = df_test.head(1)[['store_id', 'dept_id']]
+                save_df.reset_index(inplace=True, drop=True)
 
-            d = None
-            #  if time series is not stationary then find the value of d
+                # prediction df returned by forecast_sales function
+                predictions_df = df_test[['date', 'store_id', 'dept_id', 'sales']].copy()
+                predictions_df.reset_index(inplace=True, drop=True)
+                predictions_df = predictions_df.loc[:364, :]
 
-            # get number of lags
-            pacf, ci = sm.tsa.pacf(df.sales, alpha=0.05)
-            lags = get_number_of_lags(pacf)
+                # check either time series is stationary or not
+                condition, p_value = is_time_series_stationary(df, 'sales')
 
-            if not condition:
-                # finding the value to differencing to make time series stationary
-                d = find_d(df, 'sales')
+                d = None
+                #  if time series is not stationary then find the value of d
 
-            # auto-arima model setup
-            s_model = pm.auto_arima(df.sales, p=lags, q=lags,
-                                    test='adf',
-                                    m=12,
-                                    start_P=0,
-                                    start_Q=0,
-                                    D=1, d=d, seasonal=True,
-                                    trace=True,
-                                    error_action='ignore',
-                                    alpha=0.05,
-                                    suppress_warnings=True,
-                                    stepwise=True)
+                # get number of lags
+                pacf, ci = sm.tsa.pacf(df.sales, alpha=0.05)
+                lags = get_number_of_lags(pacf)
 
-            # predicting the 365 days.
-            n_periods = 365
-            fitted, conf = s_model.predict(n_periods=n_periods, return_conf_int=True)
+                if not condition:
+                    # finding the value to differencing to make time series stationary
+                    d = find_d(df, 'sales')
 
-            # converting pandas series to pandas dataframe.
-            prediction = pd.DataFrame(fitted, columns=['prediction_mean'])
-            prediction.reset_index(inplace=True, drop=True)
-            predictions_df['prediction'] = prediction['prediction_mean']
+                # auto-arima model setup
+                s_model = pm.auto_arima(df.sales, p=lags, q=lags,
+                                        test='adf',
+                                        m=12,
+                                        start_P=0,
+                                        start_Q=0,
+                                        D=1, d=d, seasonal=True,
+                                        trace=True,
+                                        error_action='ignore',
+                                        alpha=0.05,
+                                        suppress_warnings=True,
+                                        stepwise=True)
 
-            df_ = df_test[['date', 'sales']].copy()
-            df_.reset_index(inplace=True, drop=True)
-            df_['prediction'] = prediction['prediction_mean']
-            df_ = df_.loc[:364, :]
+                # predicting the 365 days.
+                n_periods = 365
+                fitted, conf = s_model.predict(n_periods=n_periods, return_conf_int=True)
 
-            # taking anti-log of values for prediction
-            df_['sales'] = np.exp(df_.sales)
-            df_['prediction'] = np.exp(df_.prediction)
+                # converting pandas series to pandas dataframe.
+                prediction = pd.DataFrame(fitted, columns=['prediction_mean'])
+                prediction.reset_index(inplace=True, drop=True)
+                predictions_df['prediction'] = prediction['prediction_mean']
 
-            # calculating MAPE value of daily modeling
-            daily_mape = mean_absolute_percentage_error(df_['sales'], df_['prediction'])
-            save_df['daily'] = daily_mape
-            print(f"Daily MAPE: {daily_mape} for store: {df.store_id.unique()[0]} & dept {df.dept_id.unique()[0]}")
+                df_ = df_test[['date', 'sales']].copy()
+                df_.reset_index(inplace=True, drop=True)
+                df_['prediction'] = prediction['prediction_mean']
+                df_ = df_.loc[:364, :]
 
-            # calculating monthly MAPE value
-            df_.date = pd.to_datetime(df_.date)
-            df_.set_index('date', inplace=True)
-            df_ = df_.resample('M').sum()
-            monthly_mape = mean_absolute_percentage_error(df_['sales'].copy(), df_['prediction'].copy())
-            save_df['monthly'] = monthly_mape
-            print(f"Monthly MAPE: {monthly_mape} for store: {df.store_id.unique()[0]} & dept {df.dept_id.unique()[0]}")
+                # taking anti-log of values for prediction
+                df_['sales'] = np.exp(df_.sales)
+                df_['prediction'] = np.exp(df_.prediction)
 
-            # saving MAPEs to .csv file
-            if os.path.exists("../models/sarima/MAPE.csv"):
-                save_df.to_csv("../models/sarima/MAPE.csv", mode='a', index=False, header=False)
+                # calculating MAPE value of daily modeling
+                daily_mape = mean_absolute_percentage_error(df_['sales'], df_['prediction'])
+                save_df['daily'] = daily_mape
+                print(f"Daily MAPE: {daily_mape} for store: {df.store_id.unique()[0]} & dept {df.dept_id.unique()[0]}")
+
+                # calculating monthly MAPE value
+                df_.date = pd.to_datetime(df_.date)
+                df_.set_index('date', inplace=True)
+                df_ = df_.resample('M').sum()
+                monthly_mape = mean_absolute_percentage_error(df_['sales'].copy(), df_['prediction'].copy())
+                save_df['monthly'] = monthly_mape
+                print(f"Monthly MAPE: {monthly_mape} for store: {df.store_id.unique()[0]} & dept {df.dept_id.unique()[0]}")
+
+                # saving MAPEs to .csv file
+                if os.path.exists("../models/sarima/MAPE.csv"):
+                    save_df.to_csv("../models/sarima/MAPE.csv", mode='a', index=False, header=False)
+                else:
+                    save_df.to_csv("../models/sarima/MAPE.csv", mode='w', index=False)
+
+                # saving sarima model to .pkl file
+                filename = "../models/sarima/" + df.head(1)['store_id'].tolist()[0] + '-' + \
+                           df.head(1)['dept_id'].tolist()[0] + '.pkl'
+                with open(filename, 'wb') as pkl:
+                    pickle.dump(s_model, pkl)
+
+                del s_model, df_,
+                # return desired columns from dataframe
+                return predictions_df[['date', 'store_id', 'dept_id', 'sales', 'prediction']]
             else:
-                save_df.to_csv("../models/sarima/MAPE.csv", mode='w', index=False)
-
-            # saving sarima model to .pkl file
-            filename = "../models/sarima/" + df.head(1)['store_id'].tolist()[0] + '-' + \
-                       df.head(1)['dept_id'].tolist()[0] + '.pkl'
-            joblib.dump(s_model, filename)
-
-            del s_model, df_,
-            # return desired columns from dataframe
-            return predictions_df[['date', 'store_id', 'dept_id', 'sales', 'prediction']]
+                print(f"""{df.store_id.unique().tolist()[0]}-{df.dept_id.unique().tolist()[0]}.pkl model already trained""")
+                predictions_df = create_dummy_data(df_test)
+                return predictions_df[['date', 'store_id', 'dept_id', 'sales', 'prediction']]
 
         predictions = train_data.groupby(['store_id', 'dept_id'])\
                                 .applyInPandas(forecast_sales, schema=self.schema)
