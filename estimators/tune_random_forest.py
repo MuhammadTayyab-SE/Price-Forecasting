@@ -40,6 +40,8 @@ class Tune:
             rfr.fit(train_x, train_y)
             predict = rfr.predict(test_x)
             predict = pd.Series(predict)
+            test_y = np.exp(test_y)
+            predict = np.exp(predict)
             mape_value = mean_absolute_percentage_error(test_y, predict)
 
             return mape_value
